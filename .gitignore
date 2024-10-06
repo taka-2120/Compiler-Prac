@@ -1,0 +1,4 @@
+report.sh
+.vscode
+*.out.dSYM
+a.out
