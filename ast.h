@@ -13,6 +13,17 @@
 #include <iostream>
 #include <string>
 #include <list>
+#include <map>
+
+class Function;
+
+struct Return_t
+{
+  bool val_is_returned; // return 文が実行されたかどうか (true/false)
+  int return_val;       // return 文が実行された場合, その返り値
+  Return_t() : val_is_returned(false), return_val(0) {}
+  Return_t(bool r, int v) : val_is_returned(r), return_val(v) {}
+};
 
 //---------------------------------------------------------------------
 //   Type
@@ -72,6 +83,10 @@ public:
   Expression() {}
   virtual ~Expression() {}
   virtual void print(std::ostream &os) const = 0;
+  virtual int run(
+      std::map<std::string, Function *> &func,
+      std::map<std::string, int> &gvar,
+      std::map<std::string, int> &lvar) const = 0;
 };
 
 //---------------------------------------------------------------------
@@ -90,6 +105,7 @@ public:
   const int value() const { return value_; }
   const Type type() const { return type_; }
   void print(std::ostream &os) const;
+  int run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const { return value(); }
 };
 
 //---------------------------------------------------------------------
@@ -105,6 +121,7 @@ public:
   ~Exp_variable() {}
   const std::string &name() const { return name_; }
   void print(std::ostream &os) const;
+  int run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const;
 };
 
 //---------------------------------------------------------------------
@@ -122,6 +139,7 @@ public:
   Operator operation() const { return operation_; }
   const Expression *operand() const { return operand_; }
   void print(std::ostream &os) const;
+  int run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const;
 };
 
 //---------------------------------------------------------------------
@@ -141,6 +159,7 @@ public:
   const Expression *operand1() const { return operand1_; }
   const Expression *operand2() const { return operand2_; }
   void print(std::ostream &os) const;
+  int run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const;
 };
 
 //---------------------------------------------------------------------
@@ -158,6 +177,7 @@ public:
   const std::string &name() const { return name_; }
   const std::list<Expression *> &args() const { return args_; }
   void print(std::ostream &os) const;
+  int run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const;
 };
 
 class Statement
@@ -166,6 +186,11 @@ public:
   Statement() {}                                                  // コンストラクタ
   virtual ~Statement() {}                                         // デストラクタ
   virtual void print(std::ostream &os, int indent = 0) const = 0; // 表示
+  virtual Return_t run(
+      std::map<std::string, Function *> &func,
+      std::map<std::string, int> &gvar,
+      std::map<std::string, int> &lvar) const = 0;
+
 private:
   Statement(const Statement &);            // コピーコンスタラクタは禁止
   Statement &operator=(const Statement &); // 代入演算は禁止
@@ -186,6 +211,10 @@ public:
   const Exp_variable *lhs() const { return lhs_; }    // 左辺の読み出し
   const Expression *rhs() const { return rhs_; }      // 右辺の読み出し
   void print(std::ostream &os, int indent = 0) const; // 表示
+  Return_t run(
+      std::map<std::string, Function *> &func,
+      std::map<std::string, int> &gvar,
+      std::map<std::string, int> &lvar) const;
 };
 
 class St_list : public Statement
@@ -198,6 +227,10 @@ public:
   ~St_list() {}
   const std::list<Statement *> &statements() const { return statements_; }
   void print(std::ostream &os, int indent = 0) const;
+  Return_t run(
+      std::map<std::string, Function *> &func,
+      std::map<std::string, int> &gvar,
+      std::map<std::string, int> &lvar) const;
 };
 
 class St_if : public Statement
@@ -214,6 +247,10 @@ public:
   const Statement *then_part() const { return then_; }
   const Statement *else_part() const { return else_; }
   void print(std::ostream &os, int indent = 0) const;
+  Return_t run(
+      std::map<std::string, Function *> &func,
+      std::map<std::string, int> &gvar,
+      std::map<std::string, int> &lvar) const;
 };
 
 class St_while : public Statement
@@ -228,6 +265,10 @@ public:
   const Expression *condition() const { return cond_; }
   const Statement *body() const { return body_; }
   void print(std::ostream &os, int indent = 0) const;
+  Return_t run(
+      std::map<std::string, Function *> &func,
+      std::map<std::string, int> &gvar,
+      std::map<std::string, int> &lvar) const;
 };
 
 class St_return : public Statement
@@ -239,6 +280,10 @@ public:
   St_return(Expression *value) : value_(value) {}
   ~St_return() {}
   const Expression *value() const { return value_; }
+  Return_t run(
+      std::map<std::string, Function *> &func,
+      std::map<std::string, int> &gvar,
+      std::map<std::string, int> &lvar) const;
   void print(std::ostream &os, int indent = 0) const;
 };
 
@@ -253,6 +298,10 @@ public:
   const std::string &name() const { return function_.name(); }
   const std::list<Expression *> &args() const { return function_.args(); }
   void print(std::ostream &os, int indent = 0) const;
+  Return_t run(
+      std::map<std::string, Function *> &func,
+      std::map<std::string, int> &gvar,
+      std::map<std::string, int> &lvar) const;
 };
 
 class Variable
@@ -287,6 +336,10 @@ public:
   const std::list<Variable *> &lvarlist() const { return lvarlist_; }
   const Statement *body() const { return body_; }
   void print(std::ostream &os) const;
+  int run(
+      std::map<std::string, Function *> &func,
+      std::map<std::string, int> &gvar,
+      std::list<int> &i_args) const;
 };
 
 class Program

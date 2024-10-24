@@ -123,6 +123,22 @@ void Exp_variable::print(std::ostream &os) const
   os << name();
 }
 
+int Exp_variable::run(
+    std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const
+{
+  std::map<std::string, int>::const_iterator p;
+  if ((p = lvar.find(name())) != lvar.end())
+  {
+    return p->second;
+  }
+  if ((p = gvar.find(name())) != gvar.end())
+  {
+    return p->second;
+  }
+  std::cerr << "undefined variable " << name() << std::endl;
+  exit(1);
+}
+
 //---------------------------------------------------------------------
 //   Exp_operation1::print の実装
 //---------------------------------------------------------------------
@@ -137,6 +153,18 @@ void Exp_operation1::print(std::ostream &os) const
   {
     os << "UNDEF";
   }
+}
+
+int Exp_operation1::run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const
+{
+  assert(operand() != NULL);
+  int value = operand()->run(func, gvar, lvar);
+
+  if (operation() == Operator_MINUS)
+  {
+    return -value;
+  }
+  return value;
 }
 
 //---------------------------------------------------------------------
@@ -160,6 +188,39 @@ void Exp_operation2::print(std::ostream &os) const
   else
   {
     os << "UNDEF";
+  }
+}
+
+int Exp_operation2::run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const
+{
+  assert(operand1() != NULL);
+  assert(operand2() != NULL);
+  int value1 = operand1()->run(func, gvar, lvar);
+  int value2 = operand2()->run(func, gvar, lvar);
+
+  switch (operation())
+  {
+  case Operator_PLUS:
+    return value1 + value2;
+  case Operator_MINUS:
+    return value1 - value2;
+  case Operator_MUL:
+    return value1 * value2;
+  case Operator_DIV:
+    return value1 / value2;
+  case Operator_MOD:
+    return value1 % value2;
+  case Operator_LT:
+    return value1 < value2;
+  case Operator_GT:
+    return value1 > value2;
+  case Operator_LE:
+    return value1 <= value2;
+  case Operator_GE:
+    return value1 >= value2;
+  default:
+    std::cerr << "unknown operator" << std::endl;
+    exit(1);
   }
 }
 
@@ -189,6 +250,52 @@ void Exp_function::print(std::ostream &os) const
   os << ")";
 }
 
+int Exp_function::run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const
+{
+  std::list<int> i_args;
+  for (std::list<Expression *>::const_iterator it = args().begin(); it != args().end(); it++)
+  {
+    i_args.push_back((*it)->run(func, gvar, lvar));
+  }
+
+  if (name() == "getint")
+  {
+    int value;
+    std::cin >> value;
+    return value;
+  }
+  else if (name() == "getchar")
+  {
+    char value;
+    std::cin >> value;
+    return value;
+  }
+  else if (name() == "putint")
+  {
+    std::cout << i_args.front();
+    return 0;
+  }
+  else if (name() == "putchar")
+  {
+    std::cout << (char)i_args.front();
+    return 0;
+  }
+  else
+  {
+    std::map<std::string, Function *>::const_iterator p;
+    if ((p = func.find(name())) != func.end())
+    {
+      Function *f = p->second;
+      return f->run(func, gvar, i_args);
+    }
+    else
+    {
+      std::cerr << "undefined function " << name() << std::endl;
+      exit(1);
+    }
+  }
+}
+
 //---------------------------------------------------------------------
 //   St_assign
 //---------------------------------------------------------------------
@@ -215,6 +322,28 @@ void St_assign::print(std::ostream &os, int indent) const
   os << ";" << std::endl;
 }
 
+Return_t St_assign::run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const
+{
+  assert(lhs() != NULL);
+  assert(rhs() != NULL);
+  int rhs_value = rhs()->run(func, gvar, lvar);
+
+  std::map<std::string, int>::const_iterator p;
+  if ((p = lvar.find(lhs()->name())) != lvar.end())
+  {
+    lvar[lhs()->name()] = rhs_value;
+  }
+  else if ((p = gvar.find(lhs()->name())) != gvar.end())
+  {
+    gvar[lhs()->name()] = rhs_value;
+  }
+  else
+  {
+    std::cerr << "undefined variable " << lhs()->name() << std::endl;
+  }
+  return Return_t(false, 0);
+}
+
 //---------------------------------------------------------------------
 //   St_list
 //---------------------------------------------------------------------
@@ -224,6 +353,19 @@ void St_list::print(std::ostream &os, int indent) const
   {
     (*it)->print(os, indent);
   }
+}
+
+Return_t St_list::run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const
+{
+  for (std::list<Statement *>::const_iterator it = statements().begin();
+       it != statements().end(); it++)
+  {
+    assert(*it);                                // 念のため NULL でないことを確認
+    Return_t rd = (*it)->run(func, gvar, lvar); // 実行
+    if (rd.val_is_returned)
+      return rd; // return 文が実行されていたら, rd をそのまま返す
+  }
+  return Return_t(false, 0);
 }
 
 //---------------------------------------------------------------------
@@ -245,6 +387,27 @@ void St_if::print(std::ostream &os, int indent) const
   os << tab(indent) << "}" << std::endl;
 }
 
+Return_t St_if::run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const
+{
+  assert(condition() != NULL);
+
+  int cond = condition()->run(func, gvar, lvar);
+  if (cond && then_part() != NULL)
+  {
+    Return_t rd = then_part()->run(func, gvar, lvar);
+    if (rd.val_is_returned)
+      return rd;
+  }
+  else if (!cond && else_part() != NULL)
+  {
+    Return_t rd = else_part()->run(func, gvar, lvar);
+    if (rd.val_is_returned)
+      return rd;
+  }
+
+  return Return_t(false, 0);
+}
+
 //---------------------------------------------------------------------
 //   St_while
 //---------------------------------------------------------------------
@@ -259,6 +422,20 @@ void St_while::print(std::ostream &os, int indent) const
   os << tab(indent) << "}" << std::endl;
 }
 
+Return_t St_while::run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const
+{
+  assert(condition() != NULL);
+
+  while (condition()->run(func, gvar, lvar))
+  {
+    Return_t rd = body()->run(func, gvar, lvar);
+    if (rd.val_is_returned)
+      return rd;
+  }
+
+  return Return_t(false, 0);
+}
+
 //---------------------------------------------------------------------
 //   St_return
 //---------------------------------------------------------------------
@@ -267,6 +444,13 @@ void St_return::print(std::ostream &os, int indent) const
   os << tab(indent) << "return ";
   value()->print(os);
   os << ";" << std::endl;
+}
+
+Return_t St_return::run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const
+{
+  assert(value());
+  int returnValue = value()->run(func, gvar, lvar);
+  return Return_t(true, returnValue);
 }
 
 //---------------------------------------------------------------------
@@ -284,6 +468,12 @@ void St_function::print(std::ostream &os, int indent) const
     }
   }
   os << ");" << std::endl;
+}
+
+Return_t St_function::run(std::map<std::string, Function *> &func, std::map<std::string, int> &gvar, std::map<std::string, int> &lvar) const
+{
+  function_.run(func, gvar, lvar);
+  return Return_t(false, 0);
 }
 
 //---------------------------------------------------------------------
@@ -319,6 +509,14 @@ void Function::print(std::ostream &os) const
   os << std::endl;
   body()->print(os, 1);
   os << "}" << std::endl;
+}
+
+int Function::run(
+    std::map<std::string, Function *> &func,
+    std::map<std::string, int> &gvar,
+    std::list<int> &i_args) const
+{
+  return i_args.front();
 }
 
 //---------------------------------------------------------------------
