@@ -218,6 +218,10 @@ int Exp_operation2::run(std::map<std::string, Function *> &func, std::map<std::s
     return value1 <= value2;
   case Operator_GE:
     return value1 >= value2;
+  case Operator_NE:
+    return value1 != value2;
+  case Operator_EQ:
+    return value1 == value2;
   default:
     std::cerr << "unknown operator" << std::endl;
     exit(1);
@@ -516,7 +520,23 @@ int Function::run(
     std::map<std::string, int> &gvar,
     std::list<int> &i_args) const
 {
-  return i_args.front();
+  std::map<std::string, int> lvar;
+
+  for (std::list<Variable *>::const_iterator it = args().begin();
+       it != args().end(); it++)
+  {
+    lvar[(*it)->name()] = i_args.front();
+    i_args.pop_front();
+  }
+
+  for (std::list<Variable *>::const_iterator it = lvarlist().begin();
+       it != lvarlist().end(); it++)
+  {
+    lvar[(*it)->name()] = 0;
+  }
+
+  Return_t rd = body()->run(func, gvar, lvar);
+  return rd.return_val;
 }
 
 //---------------------------------------------------------------------
@@ -539,4 +559,23 @@ void Program::print(std::ostream &os) const
   }
 
   main()->print(os);
+}
+
+int Program::run()
+{
+  std::map<std::string, int> gvar;
+  for (std::list<Variable *>::const_iterator it = lvarlist().begin(); it != lvarlist().end(); it++)
+  {
+    gvar[(*it)->name()] = 0;
+  }
+
+  std::map<std::string, Function *> func;
+  for (std::list<Function *>::const_iterator it = funclist().begin(); it != funclist().end(); it++)
+  {
+    func[(*it)->name()] = *it;
+  }
+
+  std::list<int> iargs;
+  int v = main()->run(func, gvar, iargs);
+  return v;
 }
