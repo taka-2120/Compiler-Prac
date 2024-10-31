@@ -1,0 +1,161 @@
+
+科目名: コンパイラ
+課題: 7
+番号: 37022465
+氏名: 高橋 由
+作成: 2024/10/31
+
+----------
+
+7.1
+
+1. 行ったこと
+空白の処理
+
+2. 結果
+  4: type = KW_INT     token = "int"
+  4: type = KW_CHAR    token = "char"
+4: 不正な文字 'e'
+
+3. 感想
+スペース文字かタブ記号かを判定する方法 ([ \t\r]) を初めて知った。
+
+----------
+
+7.2
+
+1. 行ったこと
+キーワードの定義
+
+2. 結果
+  4: type = KW_INT     token = "int"
+  4: type = KW_CHAR    token = "char"
+  4: type = KW_ELSE    token = "else"
+  4: type = KW_IF      token = "if"
+  4: type = KW_RETURN  token = "return"
+  4: type = KW_WHILE   token = "while"
+5: 不正な文字 ';'
+
+3. 感想
+追加するだけだったので簡単だった。
+
+----------
+
+7.3
+
+1. 行ったこと
+区切り記号・演算記号の定義
+
+2. 結果
+...
+  5: type = SEMICOLON  token = ";"
+  5: type = COMMA      token = ","
+  5: type = LPAR       token = "("
+  5: type = RPAR       token = ")"
+  5: type = LBRACE     token = "{"
+  5: type = RBRACE     token = "}"
+  5: type = LBRACK     token = "["
+  5: type = RBRACK     token = "]"
+  6: type = MINUS      token = "-"
+  6: type = PLUS       token = "+"
+  6: type = STAR       token = "*"
+  6: type = SLASH      token = "/"
+  6: type = PERCENT    token = "%"
+  6: type = AND        token = "&"
+  6: type = EQ         token = "="
+  6: type = EQEQ       token = "=="
+  6: type = NE         token = "!="
+  6: type = GT         token = ">"
+  6: type = GE         token = ">="
+  6: type = LT         token = "<"
+  6: type = LE         token = "<="
+7: 不正な文字 '1'
+
+3. 感想
+徐々に読み込める記号が増えてきて楽しい。
+
+----------
+
+7.4
+
+1. 行ったこと
+整数定数
+
+2. 結果
+...
+  7: type = INT        token = "1"  val = 1
+  7: type = INT        token = "2"  val = 2
+  7: type = INT        token = "12"  val = 12
+  7: type = INT        token = "123"  val = 123
+  7: type = INT        token = "0123456"  val = 123456
+  7: type = INT        token = "00123456789"  val = 123456789
+8: 不正な文字 'a'
+
+3. 感想
+正規表現から数字を取り出す方法がわかった。
+
+----------
+
+7.5
+
+1. 行ったこと
+識別子
+
+2. 結果
+...
+  8: type = ID         token = "a"
+  8: type = ID         token = "b"
+  8: type = ID         token = "c"
+  8: type = ID         token = "abc"
+  8: type = ID         token = "ABC"
+  8: type = ID         token = "main"
+  8: type = ID         token = "x123"
+  8: type = ID         token = "p000Ax3"
+  9: type = ID         token = "program"
+  9: type = ID         token = "u"
+  9: type = ID         token = "p0x"
+  9: type = ID         token = "A0x"
+  9: type = INT        token = "774"  val = 774
+10: 不正な文字 '''
+
+3. 感想
+{id} を { id } としてしまっていたため、識別子が正しく取り出せなかった。
+
+----------
+
+7.6
+
+1. 行ったこと
+文字定数
+
+2. 結果
+...
+ 10: type = CHAR       token = "'a'"  val = 97
+ 10: type = CHAR       token = "'b'"  val = 98
+ 10: type = CHAR       token = "'0'"  val = 48
+10: 不正な文字 '''
+
+3. 感想
+"'"."'" でシングルクオートに挟まれた文字を取り出すことができることを知った。
+
+----------
+
+7.7
+
+1. 行ったこと
+エスケープ記号 (\) を含む文字定数
+
+2. 結果
+ 10: type = CHAR       token = "'\t'"  val = 9
+ 10: type = CHAR       token = "'\n'"  val = 10
+ 10: type = CHAR       token = "'\''"  val = 39
+ 10: type = CHAR       token = "'\\'"  val = 92
+
+3. 感想
+バックスラッシュをいくつも書かないといけないため、エスケープ記号を取り出すのは少し面倒だった。
+
+----------
+
+[課題 7 の感想]
+
+正規表現を使ってトークンを取り出すことができるようになった。今回の課題は比較的スムーズにこなすことができた。
