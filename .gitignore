@@ -1,4 +1,5 @@
 report.sh
 .vscode
 *.out.dSYM
+*.dSYM
 a.out
