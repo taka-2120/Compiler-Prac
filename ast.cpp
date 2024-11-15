@@ -144,10 +144,12 @@ int Exp_variable::run(
 //---------------------------------------------------------------------
 void Exp_operation1::print(std::ostream &os) const
 {
+  os << "(";
   os << Operator_string(operation());
   if (operand())
   {
     operand()->print(os);
+    os << ")";
   }
   else
   {
@@ -172,8 +174,10 @@ int Exp_operation1::run(std::map<std::string, Function *> &func, std::map<std::s
 //---------------------------------------------------------------------
 void Exp_operation2::print(std::ostream &os) const
 {
+  ;
   if (operand1())
   {
+    os << "(";
     operand1()->print(os);
   }
   else
@@ -184,6 +188,7 @@ void Exp_operation2::print(std::ostream &os) const
   if (operand2())
   {
     operand2()->print(os);
+    os << ")";
   }
   else
   {
